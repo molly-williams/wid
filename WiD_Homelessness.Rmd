@@ -1,0 +1,94 @@
+---
+title: "WiD"
+author: "Molly Williams"
+date: "2/25/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Load libraries 
+```{r}
+install.packages("ggpubr")
+
+library(ggpubr)
+library(tidyverse)
+
+
+```
+
+Load data
+```{r}
+
+pit <- read_csv("2007-2019_SacCA503_PiT Counts.csv")
+
+total_counts <- pit %>% 
+  select(Year, "Overall Homeless"="Overall Homeless, 2019")
+
+housing <- read_csv("2007-2019_SacCA503_Housing Inventory Count.csv")
+
+total_housing <- housing %>% 
+  select(Year, "Total Year-Round Beds"="Total Year-Round Beds (ES, TH, SH)")
+
+annual_counts_housing <- left_join(total_counts, total_housing, by="Year")
+
+#write_csv(annual_counts_housing, "ach.csv")
+
+long_annual_counts_housing <- read_csv("ach.csv")
+
+rent_data <- read_csv("median_rent_data.csv") %>% 
+  select(Year=year, median_rent)
+
+rent_counts <- left_join(total_counts, rent_data, by="Year") %>%
+  filter(Year>2013)
+
+
+
+unemployment <- read_csv("unemployment_data.csv")
+
+unemployment_counts <- left_join(total_counts, unemployment, by="Year")
+
+```
+
+
+Create plots
+
+```{r}
+
+ggplot(long_annual_counts_housing,
+       aes(y=count, x=year, color=count_type)) + 
+  geom_line() +
+  ggtitle("Homelessness vs. Bed Availability") +
+  theme_bw() + 
+  scale_x_continuous(year, 1)
+
+
+ggscatter(rent_counts, x="median_rent", y="Overall Homeless",
+          add="reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method="pearson")
+
+ggscatter(unemployment_counts, x="Unemployed", y="Overall Homeless",
+          add="reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method="pearson")
+
+ggscatter(unemployment_counts, x="Unemployment_rate", y="Overall Homeless",
+          add="reg.line", conf.int = TRUE,
+          cor.coef = TRUE, cor.method="pearson")
+
+```
+
+
+Correlation test
+
+```{r}
+
+cor_test_rent <- cor(rent_counts$`Overall Homeless`, rent_counts$median_rent, method = c("pearson"))
+#r = 0.829
+
+summary(cor_test_rent)
+
+```
+
